@@ -210,5 +210,3 @@ This project is licensed under the terms specified in the `LICENSE` file.
 For questions, issues, or collaboration opportunities, please contact any of the team members listed above or create an issue in this repository.
 
 ---
-
-**Note**: Replace the placeholder names and email addresses in the "Team Members" section with actual team member information.
