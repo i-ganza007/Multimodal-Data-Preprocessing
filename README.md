@@ -10,7 +10,7 @@ This project provides a comprehensive multimodal data preprocessing and machine 
 
 **Ian Ganza**  
 
-**Placide Kabisa Manzi**  
+**Placide Kabisa IManzi**  
 
 **Lievin Murayire**  
 
