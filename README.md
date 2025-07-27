@@ -6,16 +6,16 @@ This project provides a comprehensive multimodal data preprocessing and machine 
 
 ## Team Members
 
-**[Eddy Gasana]**  
+**Eddy Gasana**  
 
-**[Ian Ganza]**  
+**Ian Ganza**  
 
-**[Placide Kabisa Manzi]**  
+**Placide Kabisa Manzi**  
 
-**[Lievin Murayire]**  
+**Lievin Murayire**  
 
- **[Rene Pierre Ntabahana]**  
- 
+**Rene Pierre Ntabahana**  
+
 
 ## Project Structure
 
