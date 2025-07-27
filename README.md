@@ -6,17 +6,16 @@ This project provides a comprehensive multimodal data preprocessing and machine 
 
 ## Team Members
 
-**[Member 1]**  
-📧 Email: [your.email@example.com]
+**[Eddy Gasana]**  
 
-**[Member 2]**  
-📧 Email: [member2.email@example.com]
+**[Ian Ganza]**  
 
-**[Member 3]**  
-📧 Email: [member3.email@example.com]
+**[Placide Kabisa Manzi]**  
 
 **[Lievin Murayire]**  
-📧 Email: [l.murayire@gmail.com]
+
+ **[Rene Pierre Ntabahana]**  
+ 
 
 ## Project Structure
 
@@ -62,22 +61,22 @@ Multimodal-Data-Preprocessing/
 
 ## Key Features
 
-### 🎯 **Multimodal Authentication Pipeline**
+###  **Multimodal Authentication Pipeline**
 - **Facial Recognition**: Utilizes MobileNetV2 for feature extraction with custom classifier
 - **Voice Authentication**: Advanced voiceprint verification using OneClassSVM
 - **Product Recommendation**: XGBoost-based personalized recommendation engine
 
-### 🔒 **Security Features**
+###  **Security Features**
 - Dual-factor biometric authentication (face + voice)
 - Distance-based verification with configurable thresholds
 - Secure feature extraction and model inference
 
-### 📊 **Data Processing Capabilities**
+###  **Data Processing Capabilities**
 - Comprehensive audio feature extraction (MFCC, spectral features, LPC coefficients)
 - Image preprocessing with MobileNetV2 feature embeddings
 - Advanced data merging and feature engineering
 
-### 🖥️ **Command-Line Interface**
+###  **Command-Line Interface**
 - End-to-end pipeline execution from command line
 - File-based input processing for images and audio
 - Real-time authentication and recommendation delivery
