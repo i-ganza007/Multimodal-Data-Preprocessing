@@ -13,6 +13,7 @@ import numpy as np
 from PIL import Image
 import librosa
 import argparse
+from scipy.spatial.distance import euclidean
 import os
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input
 
@@ -34,35 +35,35 @@ def load_models():
         # Load MobileNetV2 for feature extraction
         print("Loading MobileNetV2...")
         mobilenet = MobileNetV2(weights='imagenet', include_top=False, pooling='avg', input_shape=(224, 224, 3))
-        print("✅ MobileNetV2 loaded")
+        print("MobileNetV2 loaded")
         
         # Load face recognition model
         print("Loading face recognition model...")
         face_model = joblib.load('models/face_recognition_model.pkl')
-        print("✅ Face model loaded")
+        print("Face model loaded")
         
         # Load recommendation model
         print("Loading recommendation model...")
         recommendation_model = joblib.load('models/xgb_model.joblib')
-        print("✅ Recommendation model loaded")
+        print("Recommendation model loaded")
         
         # Load voice models
         print("Loading voice verification model...")
         voice_model = joblib.load('models/voiceprint_verification_model.pkl')
-        print("✅ Voice model loaded")
+        print("Voice model loaded")
         
         print("Loading voice scaler...")
         voice_scaler = joblib.load('models/voiceprint_scaler.pkl')
-        print("✅ Voice scaler loaded")
+        print("Voice scaler loaded")
         
         print("Loading voice features...")
         voice_features = joblib.load('models/voiceprint_feature_columns.pkl')
-        print("✅ Voice features loaded")
+        print("Voice features loaded")
         
-        print("✅ All models loaded successfully!")
+        print("All models loaded successfully!")
         
     except Exception as e:
-        print(f"❌ Error loading models: {e}")
+        print(f"Error loading models: {e}")
         raise e
 
 def load_and_preprocess_image(img_path):
@@ -81,55 +82,72 @@ def load_and_preprocess_image(img_path):
         img_array = np.expand_dims(img_array, axis=0)
         return img_array
     except Exception as e:
-        print(f"❌ Error loading image: {e}")
+        print(f"Error loading image: {e}")
         return None
 
 def load_image(image_path):
     """Load image from file path"""
-    print(f"📸 Loading image from: {image_path}")
+    print(f"Loading image from: {image_path}")
     
     if not os.path.exists(image_path):
-        print(f"❌ Image file not found: {image_path}")
+        print(f"Image file not found: {image_path}")
         return None
     
     img_tensor = load_and_preprocess_image(image_path)
     if img_tensor is None:
         return None
     
-    print("✅ Image loaded successfully!")
+    print("Image loaded successfully!")
     return img_tensor
 
-def recognize_face(img_tensor, threshold=0.55):
-    """Process face image and return user ID using MobileNetV2 features"""
-    print("🔍 Processing facial recognition...")
-    
-    # Extract features from MobileNet (exactly like your notebook)
-    feature_vector = mobilenet.predict(img_tensor)[0].reshape(1, -1)
-    print(f"Feature shape: {feature_vector.shape} (should be 1280)")
-    
-    # Get predictions
-    probs = face_model.predict_proba(feature_vector)[0]
-    predicted_index = np.argmax(probs)
-    predicted_class = face_model.classes_[predicted_index]
-    confidence = probs[predicted_index]
-    
-    print(f"🧠 Prediction Probabilities:")
-    for cls, prob in zip(face_model.classes_, probs):
-        print(f"  ➤ {cls}: {prob:.2f}")
-    
-    print(f"🎯 Predicted: {predicted_class}")
-    print(f"🔐 Confidence: {confidence:.2f}")
-    
-    if confidence >= threshold:
-        print(f"✅ Access Granted to: {predicted_class}")
-        return predicted_class
-    else:
-        print(f"❌ Access Denied: Unknown user (confidence too low)")
+
+def recognize_face(img_tensor, threshold=0.55, distance_threshold=0.6):
+    """Enhanced face recognition using both classifier and distance metrics"""
+    print("🔍 Processing facial recognition with distance validation...")
+
+    try:
+        # Extract features
+        feature_vector = mobilenet.predict(img_tensor)[0]
+        feature_vector_reshaped = feature_vector.reshape(1, -1)
+
+        # Load retrained face model and known embeddings
+        model = joblib.load("models/face_recognition_model.pkl")  # New model path
+        with open("utils/known_features.pkl", "rb") as f:
+            known_features, known_labels = pickle.load(f)
+
+        # Predict probabilities
+        probs = model.predict_proba(feature_vector_reshaped)[0]
+        predicted_index = np.argmax(probs)
+        predicted_class = model.classes_[predicted_index]
+        confidence = probs[predicted_index]
+
+        print(f"\nPrediction Probabilities:")
+        for cls, prob in zip(model.classes_, probs):
+            print(f"{cls}: {prob:.2f}")
+        print(f"Predicted: {predicted_class}")
+
+        # Distance comparison
+        distances = [euclidean(feature_vector, known_vec) for known_vec in known_features]
+        min_distance = min(distances)
+        closest_label = known_labels[np.argmin(distances)]
+
+        print(f"Min Distance to known face: {min_distance:.4f} (Closest match: {closest_label})")
+
+        if confidence >= threshold and min_distance < distance_threshold:
+            print(f"Access Granted to: {predicted_class}")
+            return predicted_class
+        else:
+            print(f"Access Denied: Confidence/Distance check failed")
+            return None
+
+    except Exception as e:
+        print(f"Face recognition failed: {e}")
         return None
+
 
 def generate_recommendations(user_id):
     """Generate product recommendations for user"""
-    print("🛍️ Generating product recommendations...")
+    print("Generating product recommendations...")
     
     # Create user features for XGBoost model (9 features expected)
     # You'll need to replace this with actual user feature extraction based on your training data
@@ -139,13 +157,13 @@ def generate_recommendations(user_id):
     user_features = np.array([[
         hash(user_id) % 1000,  # user_id encoded
         25,                    # age
-        1,                     # gender (0/1)
+        0,                     # gender (0/1)
         50000,                # income
-        3,                    # purchase_count
+        4,                    # purchase_count
         2,                    # preferred_category
         1,                    # is_premium_user
         0.75,                 # avg_rating
-        100                   # total_spent
+        88                   # total_spent
     ]])
     
     print(f"User features shape: {user_features.shape} (should be (1, 9))")
@@ -153,23 +171,23 @@ def generate_recommendations(user_id):
     # Get recommendations
     recommendations = recommendation_model.predict(user_features)
     
-    print("📋 Recommendations generated (waiting for voice verification...)")
+    print("Recommendations generated (waiting for voice verification...)")
     return recommendations
 
 def load_audio(audio_path):
     """Load audio from file path"""
-    print(f"🎤 Loading audio from: {audio_path}")
+    print(f"Loading audio from: {audio_path}")
     
     if not os.path.exists(audio_path):
-        print(f"❌ Audio file not found: {audio_path}")
+        print(f"Audio file not found: {audio_path}")
         return None, None
     
     try:
         audio, sample_rate = librosa.load(audio_path, sr=22050)
-        print("✅ Audio loaded successfully!")
+        print("Audio loaded successfully!")
         return audio, sample_rate
     except Exception as e:
-        print(f"❌ Could not load audio: {e}")
+        print(f"Could not load audio: {e}")
         return None, None
 
 def extract_voice_features_dict(audio_file, speaker=None):
@@ -272,7 +290,7 @@ def extract_voice_features_dict(audio_file, speaker=None):
 
 def verify_voice(audio_path, user_id):
     """Load audio file and verify voice authentication"""
-    print("🔐 Starting voice authentication...")
+    print("Starting voice authentication...")
     
     # Load audio
     audio, sample_rate = load_audio(audio_path)
@@ -280,11 +298,11 @@ def verify_voice(audio_path, user_id):
         return False
     
     # Extract features using the same method as training
-    print("🔊 Extracting voice features...")
+    print("Extracting voice features...")
     features_dict = extract_voice_features_dict(audio_path, speaker=user_id)
     
     if features_dict is None:
-        print("❌ Feature extraction failed!")
+        print("Feature extraction failed!")
         return False
     
     # Convert to DataFrame
@@ -318,24 +336,24 @@ def verify_voice(audio_path, user_id):
     # Verify voice
     verification_result = voice_model.predict(voice_features_scaled)[0]
     
-    print(f"🔍 Voice verification result: {verification_result}")
+    print(f"Voice verification result: {verification_result}")
     
     # OneClassSVM returns 1 for inlier (authorized), -1 for outlier (unauthorized)
     is_verified = verification_result == 1
     
     if is_verified:
-        print(f"✅ Voice authentication successful for user: {user_id}")
+        print(f"Voice authentication successful for user: {user_id}")
     else:
-        print(f"❌ Voice authentication failed for user: {user_id}")
+        print(f"Voice authentication failed for user: {user_id}")
     
     return is_verified
 
 def display_recommendations(recommendations):
     """Display the final recommendations"""
-    print("\n" + "="*50)
-    print("🎉 VOICE VERIFICATION SUCCESSFUL!")
-    print("📋 YOUR PERSONALIZED RECOMMENDATIONS:")
-    print("="*50)
+    print("\n" + "="*10)
+    print("VOICE VERIFICATION SUCCESSFUL!")
+    print("YOUR PERSONALIZED RECOMMENDATIONS:")
+    print("="*10)
 
     try:
         categories = pd.read_csv('Datasets/merged_dataset.csv')
@@ -345,7 +363,7 @@ def display_recommendations(recommendations):
             category_name = label_map.get(rec, "Unknown Category")
             print(f"{i}. Product recommendation: {category_name}")
     except Exception as e:
-        print(f"❌ Could not load product categories: {e}")
+        print(f"Could not load product categories: {e}")
         for i, rec in enumerate(recommendations, 1):
             print(f"{i}. Product recommendation ID: {rec}")
     
@@ -360,44 +378,44 @@ def main():
     
     args = parser.parse_args()
     
-    print("🚀 Multimodal CLI Recommendation System")
-    print("="*50)
-    print(f"📸 Image: {args.image}")
-    print(f"🎤 Audio: {args.audio}")
-    print("="*50)
+    print("Multimodal CLI Recommendation System")
+    print("="*10)
+    print(f"Image: {args.image}")
+    print(f"Audio: {args.audio}")
+    print("="*10)
     
     # Load models
     try:
         load_models()
     except Exception as e:
-        print(f"❌ Error loading models: {e}")
+        print(f"Error loading models: {e}")
         print("Make sure all model files are in the 'models' directory")
         return
     
     # Step 1: Face Recognition
-    print("\n📍 Step 1: Facial Recognition")
+    print("\nStep 1: Facial Recognition")
     img_tensor = load_image(args.image)
     if img_tensor is None:
         return
     
     user_id = recognize_face(img_tensor)
     if user_id is None:
-        print("❌ Face recognition failed or confidence too low")
+        print("Face recognition failed or confidence too low")
         return
     
     # Step 2: Generate Recommendations
-    print("\n📍 Step 2: Generating Recommendations")
+    print("\nStep 2: Generating Recommendations")
     recommendations = generate_recommendations(user_id)
     
     # Step 3: Voice Authentication
-    print("\n📍 Step 3: Voice Authentication")
+    print("\nStep 3: Voice Authentication")
     is_verified = verify_voice(args.audio, user_id)
     
     if is_verified:
         display_recommendations(recommendations)
     else:
-        print("❌ Voice verification failed! Access denied.")
-        print("🔒 Recommendations are locked.")
+        print("Voice verification failed! Access denied.")
+        print("Recommendations are locked.")
 
 if __name__ == "__main__":
     main()
