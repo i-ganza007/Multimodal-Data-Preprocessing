@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project provides a comprehensive multimodal data preprocessing and machine learning pipeline for face recognition, product recommendation, and voice authentication. It integrates image, audio, and tabular data to deliver a secure, personalized recommendation system with advanced biometric verification. The project includes data processing scripts, machine learning models, and a command-line interface (CLI) for end-to-end workflow execution.
+This project offers a complete multimodal data preprocessing and machine learning pipeline designed for face recognition, product recommendation, and voice authentication. It combines image, audio, and tabular data to create a secure and personalized recommendation system enhanced with advanced biometric verification. The package includes data processing tools, machine learning models, and a command-line interface (CLI) for seamless end-to-end execution.
 
 ## Team Members
 
